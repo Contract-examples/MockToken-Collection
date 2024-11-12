@@ -1,78 +1,42 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.28;
+pragma solidity ^0.8.20;
 
-import { Address } from "@openzeppelin/contracts/utils/Address.sol";
-import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
-import { ReentrancyGuardTransient } from "@openzeppelin/contracts/utils/ReentrancyGuardTransient.sol";
-import { Pausable } from "@openzeppelin/contracts/utils/Pausable.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract Bank is Ownable, ReentrancyGuardTransient, Pausable {
-    address public admin;
-    mapping(address => uint256) public balances;
+contract Bank {
+    using SafeERC20 for IERC20;
 
-    // Custom errors
-    error DepositTooLow();
-    error OnlyAdminCanWithdraw();
-    error WithdrawalFailed();
-
-    constructor(address initialAdmin) Ownable(initialAdmin) {
-        admin = initialAdmin;
+    // unsafe transfer
+    function unsafeTransfer(address token, address to, uint256 amount) external {
+        // this method is not recommended, because it may fail without error
+        // transfer token to bank first
+        require(IERC20(token).transferFrom(msg.sender, address(this), amount), "Transfer to bank failed");
+        // then transfer token from bank
+        require(IERC20(token).transfer(to, amount), "Transfer from bank failed");
     }
 
-    // Receive ETH
-    receive() external payable {
-        // Call deposit function
-        deposit();
+    // safe transfer
+    function safeTransfer(address token, address to, uint256 amount) external {
+        // use SafeERC20's safeTransfer
+        // if transfer fails, it will revert automatically
+        // transfer token to bank first
+        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        // then transfer token from bank
+        IERC20(token).safeTransfer(to, amount);
     }
 
-    // Pause function
-    function pause() external onlyOwner {
-        _pause();
+    // unsafe transferFrom
+    function unsafeTransferFrom(address token, address from, address to, uint256 amount) external {
+        // this method is not recommended, because it may fail without error
+        require(IERC20(token).transferFrom(from, to, amount), "TransferFrom failed");
     }
 
-    // Unpause function
-    function unpause() external onlyOwner {
-        _unpause();
+    // safe transferFrom
+    function safeTransferFrom(address token, address from, address to, uint256 amount) external {
+        // use SafeERC20's safeTransferFrom
+        IERC20(token).safeTransferFrom(from, to, amount);
     }
 
-    // Deposit function
-    function deposit() public payable whenNotPaused nonReentrant {
-        // Revert if deposit amount is 0
-        if (msg.value == 0) {
-            revert DepositTooLow();
-        }
-        balances[msg.sender] += msg.value;
-    }
-
-    // Withdrawal function (only callable by admin)
-    function withdraw(uint256 amount) external whenNotPaused nonReentrant {
-        // Revert if caller is not admin
-        if (msg.sender != admin) {
-            revert OnlyAdminCanWithdraw();
-        }
-        // If the requested amount is greater than the balance, set amount to the balance
-        uint256 balance = address(this).balance;
-        amount = amount > balance ? balance : amount;
-        if (amount != 0) {
-            // Transfer fixedly uses 2300 gas, which may not be enough in some cases
-            // payable(admin).transfer(amount);
-            Address.sendValue(payable(admin), amount);
-        }
-    }
-
-    // Query contract balance
-    function getBalance() public view returns (uint256) {
-        return address(this).balance;
-    }
-
-    // Function to get deposit amount for a specific depositor
-    function getDepositAmount(address depositor) public view returns (uint256) {
-        return balances[depositor];
-    }
-
-    // Function to destroy the contract, only callable by owner
-    // although "selfdestruct" has been deprecated, it's still used here for compatibility with older contracts
-    function destroy(address payable recipient) public onlyOwner {
-        selfdestruct(recipient);
-    }
+    receive() external payable { }
 }
