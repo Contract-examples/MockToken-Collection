@@ -3,33 +3,28 @@ pragma solidity ^0.8.28;
 
 import "forge-std/Script.sol";
 import "forge-std/console2.sol";
+import "../src/USDTFactory.sol";
 import "../src/USDT.sol";
-import "@openzeppelin/contracts/utils/Create2.sol";
 
 contract DeployUSDTScript is Script {
-    bytes32 constant SALT = bytes32(uint256(0x0000000000000000000000000000000000000000d3bf2663da51c10215000003));
+    bytes32 constant SALT = bytes32(uint256(0x0000000000000000000000000000000000000000d3bf2663da51c10215000001));
 
     function run() public {
-        // TODO: encrypt your private key
         uint256 deployerPrivateKey = vm.envUint("SEPOLIA_WALLET_PRIVATE_KEY");
         address deployerAddress = vm.addr(deployerPrivateKey);
 
         vm.startBroadcast(deployerPrivateKey);
 
-        TetherToken usdt = new TetherToken{ salt: SALT }(
-            1_000_000 * 10 ** 6, // usdt's decimals is 6
-            "FTether",
-            "FUSDT",
-            6 // decimals is 6
-        );
-        // 0xf821850f4093A471CF12f3A5Ee22Bf3EA582CEb2
-        console2.log("Token deployed to:", address(usdt));
+        // first deploy factory
+        USDTFactory factory = new USDTFactory();
 
+        // deploy usdt using factory
+        address usdt = factory.deploy(SALT, 1_000_000 * 10 ** 6, "FTether", "FUSDT", 6);
+
+        console2.log("Token deployed to:", usdt);
         console2.log("Deployed by:", deployerAddress);
+        console2.log("Token owner:", TetherToken(usdt).owner());
 
         vm.stopBroadcast();
     }
-
-    // The contract can receive ether to enable `payable` constructor calls if needed.
-    receive() external payable { }
 }
