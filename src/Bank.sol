@@ -3,9 +3,11 @@ pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@solady/utils/SafeTransferLib.sol";
 
 contract Bank {
-    using SafeERC20 for IERC20;
+    //using SafeERC20 for IERC20;
+    using SafeTransferLib for address;
 
     // unsafe transfer
     function unsafeTransfer(address token, address to, uint256 amount) external {
@@ -21,9 +23,9 @@ contract Bank {
         // use SafeERC20's safeTransfer
         // if transfer fails, it will revert automatically
         // transfer token to bank first
-        IERC20(token).safeTransferFrom(msg.sender, address(this), amount);
+        token.safeTransferFrom(msg.sender, address(this), amount);
         // then transfer token from bank
-        IERC20(token).safeTransfer(to, amount);
+        token.safeTransfer(to, amount);
     }
 
     // unsafe transferFrom
@@ -35,7 +37,7 @@ contract Bank {
     // safe transferFrom
     function safeTransferFrom(address token, address from, address to, uint256 amount) external {
         // use SafeERC20's safeTransferFrom
-        IERC20(token).safeTransferFrom(from, to, amount);
+        token.safeTransferFrom(from, to, amount);
     }
 
     receive() external payable { }
