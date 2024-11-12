@@ -22,7 +22,8 @@ contract DeployUSDTScript is Script {
             "FUSDT",
             6 // decimals is 6
         );
-        console2.log("Bank deployed to:", address(usdt));
+        // 0xf821850f4093A471CF12f3A5Ee22Bf3EA582CEb2
+        console2.log("Token deployed to:", address(usdt));
 
         console2.log("Deployed by:", deployerAddress);
 
